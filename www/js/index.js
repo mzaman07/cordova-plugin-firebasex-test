@@ -1092,3 +1092,112 @@ function unlistenToCollection(){
         logError("Failed to stop listening for changes to collection in Firestore", error);
     }, collectionListenerId);
 }
+
+// Realtime Database
+var realtimeDatabasePath = "my_database_path";
+var databaseData = {
+    "a_string": "foo",
+    "a_boolean": true,
+    "an_integer": 1,
+    "an_array": [1, 2, 3],
+    "a_map": {
+        "another_string": "bar",
+        "another_boolean": false,
+        "another_integer": 0,
+        "another_array": [3, 2, 1]
+    }
+};
+
+function addDataToRealtimeDatabase() {
+    FirebasePlugin.setInRealtimeDatabase(realtimeDatabasePath, databaseData, function(status) {
+        log("Added data to database path.", realtimeDatabasePath);
+        log("Database status for adding:", status);
+        // log("Resultset to database status");
+    },function(error) {
+        logError("Failed to go offline", error);
+    });
+}
+
+var databaseListenerId;
+function readFromDatabaseWithListener() {
+    if (databaseListenerId) {
+        return logError("Database listener already exists");
+    }
+    FirebasePlugin.fetchFromRealtimeDatabase(realtimeDatabasePath, function(data) {
+        if(data.eventType === "id"){
+            databaseListenerId = data.id;
+            log("Listening for data changes in Realtime Database with id="+databaseListenerId);
+        }else{
+            log("Data change detected at path="+realtimeDatabasePath+" with changes="+JSON.stringify(data));
+            console.dir(data);
+        }
+    },function(error) {
+        logError("Failed to fetch data and listen for changes.", error);
+    });
+}
+
+function fetchFromDatabaseOnce() {
+    FirebasePlugin.fetchFromRealtimeDatabaseOnce(realtimeDatabasePath, function(data) {
+        log("Fetched data once at path="+realtimeDatabasePath + " data="+ JSON.stringify(data));
+    }, function(error) {
+        logError("Failed to fetch data once.", error);
+    });
+}
+
+function updateDatabase() {
+    var updateFragment = {
+        "a_string": "foobar",
+        "a_boolean": false
+    }
+    FirebasePlugin.updateChildrenInRealtimeDatabase(realtimeDatabasePath, updateFragment , function(updateStatus) {
+        log("Updated data at path="+realtimeDatabasePath+" with changes="+JSON.stringify(data));
+    }, function(error) {
+        logError("Failed to updated data.", error);
+    });
+}
+
+function removeRealtimeDatabaseListener() {
+    if (!databaseListenerId) {
+        return logError("Database listener listener currently exists");
+    }
+    FirebasePlugin.removeRealtimeDatabaseListener(databaseListenerId, ()=> {
+        log("Stopped listening for data changes in Realtime Database");
+        databaseListenerId = null;
+    }, function(error) {
+        logError("Failed to stop listening for changes for path in Realtime Database", error);
+    });
+}
+
+function deleteFromDatabase() {
+    FirebasePlugin.deleteDocumentFromRealtimeDatabase(realtimeDatabasePath, (val)=> {
+        console.log("Deleted data for path="+ realtimeDatabasePath +" in Realtime Database");
+    }, function(error) {
+        console.log("Failed to delete at path="+ realtimeDatabasePath, error);
+    });
+}
+
+function realtimeDatabaseOffline() {
+    FirebasePlugin.realtimeDatabaseOffline(()=> {
+        log("Going offline.");
+    },function(error) {
+        logError("Failed to go offline", error);
+    });
+}
+
+function realtimeDatabaseOnline() {
+    FirebasePlugin.realtimeDatabaseOnline(()=> {
+        log("Going online.");
+    },function(error) {
+        logError("Failed to go online", error);
+    });
+}
+var persistence = false;
+function toggleOfflinePersistence() {
+    persistence = !persistence;
+    FirebasePlugin.setRealtimeDatabasePersistence(persistence, ()=> {
+        log("Current persistence status=" + persistence.toString());
+    },function(error) {
+        logError("Failed to change offline persistence state.", error);
+    });
+}
+
